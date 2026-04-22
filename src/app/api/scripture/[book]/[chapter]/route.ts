@@ -30,10 +30,29 @@ export async function GET(
     return NextResponse.json(result, {
       headers: {
         "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
+        Vary: "Accept",
       },
     });
   } catch (error) {
     console.error("Scripture fetch error:", error);
+
+    // If ESV fails (no API key), fall back to KJV
+    if (translation === "ESV") {
+      try {
+        const fallback = await fetchChapter(
+          decodeURIComponent(book),
+          chapter,
+          "KJV"
+        );
+        return NextResponse.json(
+          { ...fallback, error: "ESV requires an API key. Showing KJV instead." },
+          { status: 200 }
+        );
+      } catch {
+        // fall through to error
+      }
+    }
+
     return NextResponse.json(
       { error: "Failed to fetch scripture", verses: [] },
       { status: 500 }

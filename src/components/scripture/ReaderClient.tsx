@@ -52,6 +52,10 @@ export default function ReaderClient({
 
   // Refetch when translation changes (client-side)
   const fetchTranslation = useCallback(async (newTranslation: TranslationId) => {
+    if (newTranslation === initialTranslation) {
+      setVerses(initialVerses);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(
@@ -59,20 +63,23 @@ export default function ReaderClient({
       );
       if (res.ok) {
         const data = await res.json();
-        setVerses(data.verses ?? []);
+        if (data.verses && data.verses.length > 0) {
+          setVerses(data.verses);
+        } else {
+          // Translation returned no verses — fall back to initial
+          console.warn(`No verses returned for ${newTranslation}, keeping current`);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch translation:", err);
     } finally {
       setLoading(false);
     }
-  }, [bookName, chapter]);
+  }, [bookName, chapter, initialTranslation, initialVerses]);
 
   useEffect(() => {
-    if (translation !== initialTranslation) {
-      fetchTranslation(translation);
-    }
-  }, [translation, initialTranslation, fetchTranslation]);
+    fetchTranslation(translation);
+  }, [translation, fetchTranslation]);
 
   return (
     <div className="flex bg-[var(--background)]">

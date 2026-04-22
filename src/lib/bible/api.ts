@@ -2,7 +2,7 @@
  * Rhema — Bible API Integration Layer
  *
  * Unified interface for fetching scripture:
- * - bible-api.com — KJV, WEB, ASV (free, no key required)
+ * - bible-api.com — KJV, WEB, BBE (free, no key required)
  * - ESV API (api.esv.org) — ESV translation (requires API key)
  *
  * All providers are normalized to a common Verse/Chapter format.
@@ -28,7 +28,7 @@ interface BibleProvider {
 // ============================================
 // bible-api.com Provider
 // Docs: https://bible-api.com
-// Free, no API key, supports KJV, WEB, ASV, etc.
+// Free, no API key, supports KJV, WEB, BBE, etc.
 // ============================================
 
 class BibleApiComProvider implements BibleProvider {

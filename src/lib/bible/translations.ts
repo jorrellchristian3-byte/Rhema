@@ -25,10 +25,10 @@ export const TRANSLATIONS: Record<TranslationId, Translation> = {
     isPublicDomain: true,
     apiSource: "free-bible-api",
   },
-  ASV: {
-    id: "ASV",
-    name: "American Standard Version",
-    abbreviation: "ASV",
+  BBE: {
+    id: "BBE",
+    name: "Bible in Basic English",
+    abbreviation: "BBE",
     language: "en",
     isPublicDomain: true,
     apiSource: "free-bible-api",
