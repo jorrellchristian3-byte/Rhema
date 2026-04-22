@@ -1,15 +1,15 @@
 /**
  * Rhema — Bible API Integration Layer
  *
- * Unified interface for fetching scripture from multiple sources:
- * - Free Use Bible API (bible.helloao.org) — KJV, WEB, ASV, and 1000+ translations
+ * Unified interface for fetching scripture:
+ * - bible-api.com — KJV, WEB, ASV (free, no key required)
  * - ESV API (api.esv.org) — ESV translation (requires API key)
  *
  * All providers are normalized to a common Verse/Chapter format.
  */
 
 import { Chapter, Verse, TranslationId } from "@/types";
-import { getTranslation, getApiTranslationId } from "./translations";
+import { getTranslation } from "./translations";
 
 // ============================================
 // Provider Interfaces
@@ -26,27 +26,26 @@ interface BibleProvider {
 }
 
 // ============================================
-// Free Use Bible API Provider
-// Docs: https://bible.helloao.org
+// bible-api.com Provider
+// Docs: https://bible-api.com
+// Free, no API key, supports KJV, WEB, ASV, etc.
 // ============================================
 
-class FreeBibleApiProvider implements BibleProvider {
-  private translation: string;
-  private baseUrl = "https://bible.helloao.org/api";
+class BibleApiComProvider implements BibleProvider {
+  private translationId: string;
 
-  constructor(translation: string) {
-    // The Free Use Bible API uses specific file paths per translation
-    this.translation = translation;
+  constructor(translationId: string) {
+    this.translationId = translationId.toLowerCase();
   }
 
   async fetchChapter(book: string, chapter: number): Promise<Verse[]> {
-    const bookId = this.normalizeBookName(book);
-    const url = `${this.baseUrl}/${this.translation}/${bookId}/${chapter}.json`;
+    const query = encodeURIComponent(`${book} ${chapter}`);
+    const url = `https://bible-api.com/${query}?translation=${this.translationId}`;
 
-    const response = await fetch(url, { next: { revalidate: 86400 } }); // cache 24h
+    const response = await fetch(url, { next: { revalidate: 86400 } });
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch ${book} ${chapter} (${this.translation}): ${response.status}`
+        `Failed to fetch ${book} ${chapter} (${this.translationId}): ${response.status}`
       );
     }
 
@@ -60,95 +59,44 @@ class FreeBibleApiProvider implements BibleProvider {
     verseStart: number,
     verseEnd?: number
   ): Promise<Verse[]> {
-    const allVerses = await this.fetchChapter(book, chapter);
     const end = verseEnd ?? verseStart;
-    return allVerses.filter((v) => v.verse >= verseStart && v.verse <= end);
+    const query = encodeURIComponent(`${book} ${chapter}:${verseStart}-${end}`);
+    const url = `https://bible-api.com/${query}?translation=${this.translationId}`;
+
+    const response = await fetch(url, { next: { revalidate: 86400 } });
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch ${book} ${chapter}:${verseStart}-${end}: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+    return this.parseResponse(data, book, chapter);
   }
 
   private parseResponse(data: unknown, book: string, chapter: number): Verse[] {
-    // The Free Use Bible API returns chapter content
-    // Structure varies by translation — handle common formats
     const verses: Verse[] = [];
 
-    const content =
+    if (
       typeof data === "object" &&
       data &&
-      "chapter" in data &&
-      typeof data.chapter === "object" &&
-      data.chapter &&
-      "content" in data.chapter &&
-      Array.isArray(data.chapter.content)
-        ? data.chapter.content
-        : null;
-
-    if (content) {
-      for (const item of content) {
-        if (
-          typeof item === "object" &&
-          item &&
-          "type" in item &&
-          "number" in item &&
-          "content" in item &&
-          item.type === "verse"
-        ) {
+      "verses" in data &&
+      Array.isArray((data as { verses: unknown[] }).verses)
+    ) {
+      for (const v of (data as { verses: { verse: number; text: string }[] }).verses) {
+        if (v && typeof v.verse === "number" && typeof v.text === "string") {
           verses.push({
             book,
             chapter,
-            verse: parseInt(String(item.number), 10),
-            text: this.extractText(item.content),
-            translation: this.translation,
+            verse: v.verse,
+            text: v.text.trim(),
+            translation: this.translationId.toUpperCase(),
           });
         }
       }
     }
 
     return verses;
-  }
-
-  private extractText(content: unknown): string {
-    if (typeof content === "string") return content;
-    if (Array.isArray(content)) {
-      return content
-        .map((c: unknown) => {
-          if (typeof c === "string") return c;
-          if (typeof c === "object" && c && "text" in c && typeof c.text === "string") {
-            return c.text;
-          }
-          if (typeof c === "object" && c && "content" in c) {
-            return this.extractText(c.content);
-          }
-          return "";
-        })
-        .join("");
-    }
-    if (typeof content === "object" && content && "text" in content && typeof content.text === "string") {
-      return content.text;
-    }
-    return "";
-  }
-
-  private normalizeBookName(book: string): string {
-    // Convert display names to API-compatible abbreviations
-    const bookMap: Record<string, string> = {
-      "Genesis": "GEN", "Exodus": "EXO", "Leviticus": "LEV", "Numbers": "NUM",
-      "Deuteronomy": "DEU", "Joshua": "JOS", "Judges": "JDG", "Ruth": "RUT",
-      "1 Samuel": "1SA", "2 Samuel": "2SA", "1 Kings": "1KI", "2 Kings": "2KI",
-      "1 Chronicles": "1CH", "2 Chronicles": "2CH", "Ezra": "EZR", "Nehemiah": "NEH",
-      "Esther": "EST", "Job": "JOB", "Psalms": "PSA", "Proverbs": "PRO",
-      "Ecclesiastes": "ECC", "Song of Solomon": "SNG", "Isaiah": "ISA", "Jeremiah": "JER",
-      "Lamentations": "LAM", "Ezekiel": "EZK", "Daniel": "DAN", "Hosea": "HOS",
-      "Joel": "JOL", "Amos": "AMO", "Obadiah": "OBA", "Jonah": "JON",
-      "Micah": "MIC", "Nahum": "NAM", "Habakkuk": "HAB", "Zephaniah": "ZEP",
-      "Haggai": "HAG", "Zechariah": "ZEC", "Malachi": "MAL",
-      "Matthew": "MAT", "Mark": "MRK", "Luke": "LUK", "John": "JHN",
-      "Acts": "ACT", "Romans": "ROM", "1 Corinthians": "1CO", "2 Corinthians": "2CO",
-      "Galatians": "GAL", "Ephesians": "EPH", "Philippians": "PHP", "Colossians": "COL",
-      "1 Thessalonians": "1TH", "2 Thessalonians": "2TH", "1 Timothy": "1TI", "2 Timothy": "2TI",
-      "Titus": "TIT", "Philemon": "PHM", "Hebrews": "HEB", "James": "JAS",
-      "1 Peter": "1PE", "2 Peter": "2PE", "1 John": "1JN", "2 John": "2JN",
-      "3 John": "3JN", "Jude": "JUD", "Revelation": "REV",
-    };
-    return bookMap[book] ?? book.replace(/\s+/g, "");
   }
 }
 
@@ -226,7 +174,6 @@ class EsvApiProvider implements BibleProvider {
         ? data.passages[0]
         : "";
 
-    // ESV returns plain text with verse numbers in brackets [1], [2], etc.
     const parts = text.split(/\[(\d+)\]/).filter(Boolean);
 
     for (let i = 0; i < parts.length; i += 2) {
@@ -265,7 +212,7 @@ function getProvider(translationId: TranslationId): BibleProvider {
       break;
     case "free-bible-api":
     default:
-      providers[translationId] = new FreeBibleApiProvider(getApiTranslationId(translationId));
+      providers[translationId] = new BibleApiComProvider(translationId);
       break;
   }
 
