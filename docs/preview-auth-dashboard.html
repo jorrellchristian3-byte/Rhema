@@ -1,0 +1,318 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Rhema — Auth & Dashboard Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+  :root {
+    --primary-50:#eef2ff; --primary-100:#e0e7ff; --primary-200:#c7d2fe;
+    --primary-300:#a5b4fc; --primary-400:#818cf8; --primary-500:#6366f1;
+    --primary-600:#1e3a5f; --primary-700:#1a3352; --primary-800:#152a43;
+    --primary-900:#0f1f33;
+    --accent-500:#d4a853;
+    --neutral-50:#fafaf9; --neutral-100:#f5f5f4; --neutral-200:#e7e5e4;
+    --neutral-300:#d6d3d1; --neutral-400:#a8a29e; --neutral-500:#78716c;
+    --neutral-600:#57534e; --neutral-700:#44403c; --neutral-800:#292524;
+    --surface:#ffffff; --background:#fafaf9; --border:#e7e5e4;
+    --font-serif:'Libre Baskerville',Georgia,serif;
+    --font-sans:'Inter',system-ui,sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:var(--font-sans); background:var(--background); color:var(--neutral-800); }
+
+  /* Layout */
+  .page { margin-bottom:60px; }
+  .page-label {
+    text-align:center; padding:12px; background:var(--primary-900); color:white;
+    font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+  }
+
+  /* Auth page */
+  .auth-page {
+    min-height:70vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:3rem 1rem;
+  }
+  .auth-logo { display:flex; align-items:center; gap:10px; margin-bottom:2rem; text-decoration:none; }
+  .auth-logo svg { color:var(--primary-500); }
+  .auth-logo span { font-family:var(--font-serif); font-size:24px; color:var(--primary-800); }
+
+  .auth-card {
+    width:100%; max-width:420px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:2rem; display:flex; flex-direction:column; gap:1.5rem;
+  }
+  .auth-card h1 { font-family:var(--font-serif); font-size:22px; font-weight:700; color:var(--primary-800); }
+  .auth-card .subtitle { font-size:13px; color:var(--neutral-500); margin-top:6px; }
+  .auth-field { display:flex; flex-direction:column; gap:6px; }
+  .auth-field label { font-size:13px; font-weight:500; color:var(--neutral-600); }
+  .auth-field input {
+    padding:10px 14px; border-radius:8px; border:1px solid var(--border);
+    background:var(--background); font-size:13px; outline:none;
+  }
+  .auth-field input:focus { border-color:var(--primary-300); box-shadow:0 0 0 3px rgba(99,102,241,0.1); }
+  .auth-btn {
+    padding:10px; border-radius:8px; background:var(--primary-600); color:white;
+    font-size:13px; font-weight:600; border:none; cursor:pointer; margin-top:4px;
+  }
+  .auth-btn:hover { background:var(--primary-700); }
+  .auth-footer { font-size:13px; color:var(--neutral-500); text-align:center; }
+  .auth-footer a { font-weight:600; color:var(--primary-600); text-decoration:none; }
+
+  /* Dashboard */
+  .dash-header { background:var(--primary-900); color:white; padding:2.5rem 2rem; }
+  .dash-header-inner { max-width:960px; margin:0 auto; }
+  .dash-email { font-size:13px; color:#a5b4fc; display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .dash-title { font-family:var(--font-serif); font-size:28px; font-weight:700; }
+
+  .dash-tabs {
+    position:sticky; top:0; z-index:10;
+    background:rgba(255,255,255,0.95); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+  .dash-tabs-inner { max-width:960px; margin:0 auto; display:flex; gap:4px; padding:0 2rem; }
+  .dash-tab {
+    padding:12px 16px; font-size:13px; font-weight:500; border:none;
+    background:none; cursor:pointer; border-bottom:2px solid transparent;
+    color:var(--neutral-500);
+  }
+  .dash-tab.active { border-color:var(--primary-500); color:var(--primary-700); }
+
+  .dash-content { max-width:960px; margin:0 auto; padding:2rem; }
+  .dash-bar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
+  .dash-bar p { font-size:13px; color:var(--neutral-500); }
+  .dash-new-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 16px; border-radius:8px; font-size:13px; font-weight:500;
+    color:white; background:var(--primary-600); border:none; cursor:pointer; text-decoration:none;
+  }
+
+  .section-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--neutral-400); margin-bottom:10px; }
+
+  .dash-row {
+    display:flex; align-items:center; gap:16px;
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:12px 16px; margin-bottom:8px; transition:border-color 0.15s;
+  }
+  .dash-row:hover { border-color:var(--primary-200); }
+  .dash-row-info { flex:1; min-width:0; }
+  .dash-row-title { display:flex; align-items:center; gap:8px; }
+  .dash-row-title h4 { font-size:13px; font-weight:500; color:var(--primary-800); }
+  .badge {
+    padding:2px 8px; border-radius:999px; font-size:9px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .badge-draft { background:#fffbeb; color:#d97706; border:1px solid #fde68a; }
+  .badge-published { background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; }
+  .dash-row-meta { font-size:11px; color:var(--neutral-400); margin-top:3px; }
+  .dash-row-actions { display:flex; gap:2px; flex-shrink:0; }
+  .dash-row-actions button, .dash-row-actions a {
+    padding:6px; background:none; border:none; cursor:pointer; color:var(--neutral-400);
+    display:flex; align-items:center; border-radius:4px;
+  }
+  .dash-row-actions button:hover, .dash-row-actions a:hover { color:var(--primary-600); background:var(--neutral-50); }
+  .dash-row-actions .del:hover { color:#ef4444; }
+
+  /* Navbar preview */
+  .nav-preview {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 24px; height:56px; border-bottom:1px solid var(--border); background:var(--surface);
+  }
+  .nav-logo { display:flex; align-items:center; gap:8px; }
+  .nav-logo span { font-family:var(--font-serif); font-size:18px; color:var(--primary-800); }
+  .nav-links { display:flex; align-items:center; gap:24px; }
+  .nav-links a { font-size:13px; font-weight:500; color:var(--neutral-500); text-decoration:none; }
+  .nav-user { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:500; color:var(--neutral-600); cursor:pointer; position:relative; }
+  .nav-dropdown {
+    position:absolute; top:100%; right:0; margin-top:8px; width:180px;
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.1); padding:4px 0;
+  }
+  .nav-dropdown a, .nav-dropdown button {
+    display:block; width:100%; text-align:left; padding:8px 16px;
+    font-size:13px; color:var(--neutral-600); background:none; border:none;
+    cursor:pointer; text-decoration:none;
+  }
+  .nav-dropdown a:hover, .nav-dropdown button:hover { background:var(--neutral-50); }
+  .nav-cta {
+    font-size:13px; font-weight:500; padding:6px 14px; border-radius:8px;
+    background:var(--primary-500); color:white; text-decoration:none;
+  }
+
+  @media(max-width:600px) {
+    .auth-card { padding:1.5rem; }
+    .dash-header { padding:1.5rem 1rem; }
+    .dash-content { padding:1rem; }
+  }
+</style>
+</head>
+<body>
+
+<\!-- ═══════════════════════════════ -->
+<\!-- PAGE 1: SIGN IN                -->
+<\!-- ═══════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Sign In Page</div>
+  <div class="auth-page">
+    <a class="auth-logo" href="#">
+      <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      <span>Rhema</span>
+    </a>
+    <div class="auth-card">
+      <div>
+        <h1>Welcome back</h1>
+        <p class="subtitle">Sign in to save bookmarks and create curriculum.</p>
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" value="jorrell@example.com" />
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" value="••••••••" />
+      </div>
+      <button class="auth-btn">Sign in</button>
+      <p class="auth-footer">Need an account? <a href="#">Sign up</a></p>
+    </div>
+  </div>
+</div>
+
+<\!-- ═══════════════════════════════ -->
+<\!-- PAGE 2: SIGN UP                -->
+<\!-- ═══════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Create Account Page</div>
+  <div class="auth-page">
+    <a class="auth-logo" href="#">
+      <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      <span>Rhema</span>
+    </a>
+    <div class="auth-card">
+      <div>
+        <h1>Create your account</h1>
+        <p class="subtitle">Join Rhema to build curriculum, track progress, and save bookmarks.</p>
+      </div>
+      <div class="auth-field">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com" />
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" placeholder="At least 6 characters" />
+      </div>
+      <button class="auth-btn">Create account</button>
+      <p class="auth-footer">Already have an account? <a href="#">Sign in</a></p>
+    </div>
+  </div>
+</div>
+
+<\!-- ═══════════════════════════════ -->
+<\!-- PAGE 3: NAVBAR (logged in)     -->
+<\!-- ═══════════════════════════════ -->
+<div class="page">
+  <div class="page-label">Navbar — Signed In State</div>
+  <div class="nav-preview">
+    <div class="nav-logo">
+      <svg width="22" height="22" fill="none" stroke="#6366f1" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      <span>Rhema</span>
+    </div>
+    <div class="nav-links">
+      <a href="#">Read</a>
+      <a href="#">Curriculum</a>
+      <a href="#">Library</a>
+      <div class="nav-user">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        jorrell
+        <div class="nav-dropdown">
+          <a href="#">My Curriculum</a>
+          <button>Sign out</button>
+        </div>
+      </div>
+      <a class="nav-cta" href="#">Create Curriculum</a>
+    </div>
+  </div>
+</div>
+
+<\!-- ═══════════════════════════════ -->
+<\!-- PAGE 4: DASHBOARD              -->
+<\!-- ═══════════════════════════════ -->
+<div class="page">
+  <div class="page-label">My Curriculum Dashboard</div>
+
+  <div class="dash-header">
+    <div class="dash-header-inner">
+      <div class="dash-email">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        jorrell@example.com
+      </div>
+      <h1 class="dash-title">My Curriculum</h1>
+    </div>
+  </div>
+
+  <div class="dash-tabs">
+    <div class="dash-tabs-inner">
+      <button class="dash-tab active">My Curriculum</button>
+      <button class="dash-tab">In Progress</button>
+    </div>
+  </div>
+
+  <div class="dash-content">
+    <div class="dash-bar">
+      <p>2 drafts · 1 published</p>
+      <a class="dash-new-btn" href="#">+ New Curriculum</a>
+    </div>
+
+    <div class="section-label">Drafts</div>
+
+    <div class="dash-row">
+      <div class="dash-row-info">
+        <div class="dash-row-title">
+          <h4>The Gospel of John: A Deep Dive</h4>
+          <span class="badge badge-draft">Draft</span>
+        </div>
+        <div class="dash-row-meta">book study · Updated Apr 20, 2026</div>
+      </div>
+      <div class="dash-row-actions">
+        <a href="#" title="View"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+        <a href="#" title="Edit"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a>
+        <button class="del" title="Delete"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+      </div>
+    </div>
+
+    <div class="dash-row">
+      <div class="dash-row-info">
+        <div class="dash-row-title">
+          <h4>Proverbs for Daily Living</h4>
+          <span class="badge badge-draft">Draft</span>
+        </div>
+        <div class="dash-row-meta">practical living · Updated Apr 18, 2026</div>
+      </div>
+      <div class="dash-row-actions">
+        <a href="#" title="View"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+        <a href="#" title="Edit"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a>
+        <button class="del" title="Delete"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:2rem">Published</div>
+
+    <div class="dash-row">
+      <div class="dash-row-info">
+        <div class="dash-row-title">
+          <h4>Romans: The Theology of Grace</h4>
+          <span class="badge badge-published">Published</span>
+        </div>
+        <div class="dash-row-meta">theology · Updated Apr 15, 2026</div>
+      </div>
+      <div class="dash-row-actions">
+        <a href="#" title="View"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+        <a href="#" title="Edit"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a>
+        <button class="del" title="Delete"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

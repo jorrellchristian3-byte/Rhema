@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhema — Landing Page Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary-50: #EEF2F7; --primary-100: #D4DFEC; --primary-200: #A9BFDA;
+    --primary-300: #7E9FC7; --primary-400: #5380B5; --primary-500: #2D4A6F;
+    --primary-600: #243C5A; --primary-700: #1B2E44; --primary-800: #12202F;
+    --primary-900: #0A1219;
+    --accent-100: #FFF0CC; --accent-400: #FFC233; --accent-500: #D4A012;
+    --accent-600: #AA800E;
+    --neutral-50: #FAFAF8; --neutral-100: #F5F5F0; --neutral-200: #E8E8E0;
+    --neutral-300: #D4D4C8; --neutral-400: #A8A89C; --neutral-500: #7C7C70;
+    --neutral-600: #5C5C52; --neutral-700: #3E3E38; --neutral-900: #1A1A17;
+    --background: #FAFAF8; --surface: #FFFFFF; --border: #E8E8E0;
+    --font-serif: 'Libre Baskerville', Georgia, serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+  }
+
+  body { font-family: var(--font-sans); background: var(--background); color: var(--neutral-900); -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--accent-100); color: var(--primary-800); }
+
+  /* NAV */
+  nav { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); }
+  .nav-inner { max-width: 72rem; margin: 0 auto; padding: 0 1.5rem; display: flex; align-items: center; justify-content: space-between; height: 4rem; }
+  .logo { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+  .logo svg { color: var(--primary-500); }
+  .logo span { font-family: var(--font-serif); font-size: 1.25rem; letter-spacing: 0.05em; color: var(--primary-800); }
+  .nav-links { display: flex; align-items: center; gap: 2rem; }
+  .nav-links a { font-size: 0.875rem; font-weight: 500; color: var(--neutral-500); text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--primary-600); }
+  .nav-links .signin { color: var(--primary-500); }
+  .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.5rem; background: var(--primary-500); color: white; font-size: 0.875rem; font-weight: 500; text-decoration: none; border: none; cursor: pointer; transition: background 0.2s; }
+  .btn-primary:hover { background: var(--primary-600); }
+  .btn-outline { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 0.5rem; border: 1px solid var(--border); color: var(--primary-700); font-size: 0.875rem; font-weight: 500; text-decoration: none; background: transparent; transition: background 0.2s; }
+  .btn-outline:hover { background: var(--neutral-100); }
+  .btn-lg { padding: 0.75rem 1.5rem; }
+
+  /* HERO */
+  .hero { position: relative; overflow: hidden; }
+  .hero-bg { position: absolute; inset: 0; background: linear-gradient(to bottom, var(--primary-50), var(--background)); }
+  .hero-inner { position: relative; max-width: 72rem; margin: 0 auto; padding: 5rem 1.5rem 6rem; }
+  .hero-badge { font-size: 0.875rem; font-weight: 500; color: var(--accent-600); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1rem; }
+  .hero h1 { font-family: var(--font-serif); font-size: 3.5rem; line-height: 1.15; color: var(--primary-900); max-width: 48rem; }
+  .hero h1 .accent { color: var(--primary-500); }
+  .hero .subtitle { margin-top: 1.5rem; font-size: 1.125rem; color: var(--neutral-600); line-height: 1.7; max-width: 32rem; }
+  .hero-buttons { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; }
+
+  /* Scripture preview */
+  .scripture-card { margin-top: 4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); max-width: 42rem; }
+  .scripture-card .ref { font-size: 0.75rem; font-weight: 500; color: var(--neutral-400); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+  .scripture-text { font-family: var(--font-serif); font-size: 1.125rem; line-height: 1.9; color: var(--primary-900); letter-spacing: 0.01em; }
+  .verse-num { font-family: var(--font-sans); font-size: 0.7em; font-weight: 600; color: var(--primary-400); vertical-align: super; margin-right: 0.15em; }
+
+  /* FEATURES */
+  .features { max-width: 72rem; margin: 0 auto; padding: 5rem 1.5rem; }
+  .features .section-header { max-width: 32rem; margin-bottom: 3rem; }
+  .features h2 { font-family: var(--font-serif); font-size: 1.875rem; color: var(--primary-900); margin-bottom: 1rem; }
+  .features .section-header p { color: var(--neutral-600); line-height: 1.7; }
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+  .feature-card { padding: 1.5rem; border-radius: 0.75rem; border: 1px solid var(--border); background: var(--surface); transition: all 0.2s; }
+  .feature-card:hover { border-color: var(--primary-200); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .feature-icon { width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; background: var(--primary-50); display: flex; align-items: center; justify-content: center; color: var(--primary-500); margin-bottom: 1rem; }
+  .feature-card h3 { font-family: var(--font-serif); font-size: 1.125rem; color: var(--primary-900); margin-bottom: 0.5rem; }
+  .feature-card p { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.6; }
+
+  /* HOW IT WORKS */
+  .how-it-works { background: var(--primary-900); color: white; }
+  .how-inner { max-width: 72rem; margin: 0 auto; padding: 5rem 1.5rem; }
+  .how-inner h2 { font-family: var(--font-serif); font-size: 1.875rem; margin-bottom: 1rem; }
+  .how-inner > p { color: var(--primary-200); margin-bottom: 3rem; max-width: 32rem; }
+  .block-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+  .block-card { padding: 1.25rem; border-radius: 0.75rem; background: var(--primary-800); border: 1px solid var(--primary-700); }
+  .block-icon { width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; }
+  .block-card h4 { font-weight: 600; color: white; margin-bottom: 0.25rem; }
+  .block-card p { font-size: 0.875rem; color: var(--primary-300); line-height: 1.6; }
+
+  /* CTA */
+  .cta { max-width: 72rem; margin: 0 auto; padding: 5rem 1.5rem; text-align: center; }
+  .cta h2 { font-family: var(--font-serif); font-size: 1.875rem; color: var(--primary-900); margin-bottom: 1rem; }
+  .cta p { color: var(--neutral-600); margin-bottom: 2rem; max-width: 28rem; margin-left: auto; margin-right: auto; }
+  .cta-buttons { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+
+  /* FOOTER */
+  footer { border-top: 1px solid var(--border); background: var(--neutral-50); margin-top: auto; }
+  .footer-inner { max-width: 72rem; margin: 0 auto; padding: 3rem 1.5rem; }
+  .footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 2rem; }
+  .footer-brand p { font-size: 0.875rem; color: var(--neutral-500); line-height: 1.6; margin-top: 0.75rem; }
+  .footer-col h4 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--neutral-400); margin-bottom: 0.75rem; }
+  .footer-col a { display: block; font-size: 0.875rem; color: var(--neutral-600); text-decoration: none; padding: 0.25rem 0; }
+  .footer-col a:hover { color: var(--primary-600); }
+  .footer-bottom { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; font-size: 0.75rem; color: var(--neutral-400); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 2.25rem; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .block-grid { grid-template-columns: 1fr 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .nav-links { display: none; }
+  }
+
+  /* SVG icon helper */
+  .icon { width: 22px; height: 22px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-sm { width: 16px; height: 16px; }
+  .icon-nav { width: 24px; height: 24px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <svg class="icon-nav" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span>Rhema</span>
+    </a>
+    <div class="nav-links">
+      <a href="#">Read</a>
+      <a href="#">Curricula</a>
+      <a href="#">Library</a>
+      <a href="#" class="signin">Sign in</a>
+      <a href="#" class="btn-primary">Create Curriculum</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <p class="hero-badge">Free &amp; Open Source</p>
+    <h1>
+      Study scripture.<br>
+      <span class="accent">Build curricula.</span><br>
+      Go deeper.
+    </h1>
+    <p class="subtitle">
+      Rhema brings together scripture, commentary, video, and discussion into structured study paths anyone can create and follow — completely free.
+    </p>
+    <div class="hero-buttons">
+      <a href="#" class="btn-primary btn-lg">
+        Explore Curricula
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="#" class="btn-outline">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Start Reading
+      </a>
+    </div>
+
+    <div class="scripture-card">
+      <div class="ref">John 1:1-5 &middot; KJV</div>
+      <div class="scripture-text">
+        <sup class="verse-num">1</sup>In the beginning was the Word, and the Word was with God, and the Word was God.
+        <sup class="verse-num">2</sup>The same was in the beginning with God.
+        <sup class="verse-num">3</sup>All things were made by him; and without him was not any thing made that was made.
+        <sup class="verse-num">4</sup>In him was life; and the life was the light of men.
+        <sup class="verse-num">5</sup>And the light shineth in darkness; and the darkness comprehended it not.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-header">
+    <h2>More than a Bible app</h2>
+    <p>Most free tools let you read or search. Rhema lets you <em>learn</em> — with structured study paths that combine scripture, teaching, video, and guided discussion in one place.</p>
+  </div>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      </div>
+      <h3>Read Scripture</h3>
+      <p>Multiple translations side by side. Clean, distraction-free reading with highlighting and bookmarks.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+      </div>
+      <h3>Build Curricula</h3>
+      <p>Create structured study plans with scripture passages, your own teaching notes, embedded videos, and discussion questions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </div>
+      <h3>Discover &amp; Follow</h3>
+      <p>Browse a public library of curricula created by others. Follow a study plan at your own pace with progress tracking.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg class="icon" viewBox="0 0 24 24"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+      </div>
+      <h3>Resource Directory</h3>
+      <p>Public domain commentaries, theologian quotes, articles, and book recommendations — all linked to scripture.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </div>
+      <h3>Video Integration</h3>
+      <p>BibleProject explainers, seminary lectures, and curated teaching content mapped to passages and topics.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <h3>Community Driven</h3>
+      <p>Share curricula, learn from how others study, and contribute to a growing library of resources.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works">
+  <div class="how-inner">
+    <h2>How a curriculum works</h2>
+    <p>Each curriculum is a series of steps. Every step combines different content blocks that you arrange in any order.</p>
+    <div class="block-grid">
+      <div class="block-card">
+        <div class="block-icon" style="background: rgba(212,160,18,0.13); color: #D4A012;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        </div>
+        <h4>Scripture</h4>
+        <p>A Bible passage pulled from the translation of your choice, displayed inline.</p>
+      </div>
+      <div class="block-card">
+        <div class="block-icon" style="background: rgba(126,159,199,0.13); color: #7E9FC7;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H7"/><path d="M17 12H7"/></svg>
+        </div>
+        <h4>Teaching</h4>
+        <p>Your own commentary, context, and insights written in rich text.</p>
+      </div>
+      <div class="block-card">
+        <div class="block-icon" style="background: rgba(45,106,79,0.13); color: #2D6A4F;">
+          <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <h4>Video</h4>
+        <p>An embedded YouTube video — lectures, sermons, BibleProject, and more.</p>
+      </div>
+      <div class="block-card">
+        <div class="block-icon" style="background: rgba(155,107,158,0.13); color: #9B6B9E;">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h4>Discussion</h4>
+        <p>Guided questions for personal reflection or group conversation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Start studying today</h2>
+  <p>No account required to read and explore. Sign up when you are ready to create your own curricula and track your progress.</p>
+  <div class="cta-buttons">
+    <a href="#" class="btn-primary btn-lg">
+      Open the Bible
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    </a>
+    <a href="#" class="btn-outline">Browse Curricula</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="logo" style="display:inline-flex;">
+          <svg class="icon" viewBox="0 0 24 24" style="width:20px;height:20px;color:var(--primary-500);"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span style="font-family:var(--font-serif);font-size:1.125rem;color:var(--primary-800);">Rhema</span>
+        </div>
+        <p>Free, open-source Bible study and curriculum platform. Built for the church, by the church.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Study</h4>
+        <a href="#">Read Scripture</a>
+        <a href="#">Browse Curricula</a>
+        <a href="#">Resource Library</a>
+      </div>
+      <div class="footer-col">
+        <h4>Create</h4>
+        <a href="#">Build a Curriculum</a>
+        <a href="#">Create Account</a>
+      </div>
+      <div class="footer-col">
+        <h4>About</h4>
+        <a href="#">Open Source</a>
+        <a href="#">Free Forever</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      Rhema is free and open-source software. Scripture text provided by public domain and openly licensed translations.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

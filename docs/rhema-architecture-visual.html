@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhema — Architecture Overview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0A1219;
+    color: #E8E8E0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 48px 24px 32px;
+  }
+  .header h1 {
+    font-family: 'Libre Baskerville', Georgia, serif;
+    font-size: 42px;
+    color: #FFD166;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .header p {
+    font-size: 15px;
+    color: #A8A89C;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 16px 24px 40px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #A8A89C;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* Main canvas */
+  .canvas {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+    position: relative;
+  }
+
+  /* Section titles */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #7C7C70;
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+
+  /* Tier rows */
+  .tier {
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .tier-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  /* Cards */
+  .card {
+    background: #12202F;
+    border: 1px solid #1B2E44;
+    border-radius: 12px;
+    padding: 20px;
+    flex: 1;
+    min-width: 200px;
+    transition: all 0.3s ease;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    border-color: #2D4A6F;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  .card-icon {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .card h3 {
+    font-family: 'Libre Baskerville', Georgia, serif;
+    font-size: 16px;
+    color: #E8E8E0;
+    margin-bottom: 6px;
+  }
+  .card p {
+    font-size: 12px;
+    color: #A8A89C;
+    line-height: 1.5;
+  }
+  .card .tech-badge {
+    display: inline-block;
+    background: rgba(45, 74, 111, 0.3);
+    border: 1px solid #2D4A6F;
+    color: #A9BFDA;
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-top: 10px;
+    margin-right: 4px;
+  }
+
+  /* Color coding by category */
+  .card.frontend::before { background: #5380B5; }
+  .card.backend::before { background: #2D6A4F; }
+  .card.data::before { background: #D4A012; }
+  .card.external::before { background: #9B6B9E; }
+  .card.infra::before { background: #C4704B; }
+
+  /* Flow arrows */
+  .flow-connector {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+    position: relative;
+  }
+  .flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #3E3E38;
+  }
+  .flow-arrow .line {
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(to bottom, #2D4A6F, #1B2E44);
+  }
+  .flow-arrow .arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #2D4A6F;
+  }
+  .flow-label {
+    font-size: 10px;
+    color: #5C5C52;
+    margin: 0 16px;
+    white-space: nowrap;
+    align-self: center;
+  }
+
+  /* Wide card for spanning */
+  .card.wide { min-width: 100%; }
+  .card.medium { min-width: 45%; }
+
+  /* Data flow diagram */
+  .data-flow {
+    background: #0E1A25;
+    border: 1px solid #1B2E44;
+    border-radius: 16px;
+    padding: 32px;
+    margin-top: 48px;
+  }
+  .data-flow h2 {
+    font-family: 'Libre Baskerville', Georgia, serif;
+    font-size: 20px;
+    color: #FFD166;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+    padding: 16px 0;
+  }
+  .flow-node {
+    background: #12202F;
+    border: 1px solid #1B2E44;
+    border-radius: 10px;
+    padding: 14px 18px;
+    text-align: center;
+    min-width: 130px;
+  }
+  .flow-node .node-icon { font-size: 20px; margin-bottom: 4px; }
+  .flow-node .node-label { font-size: 12px; font-weight: 600; color: #E8E8E0; }
+  .flow-node .node-detail { font-size: 10px; color: #7C7C70; margin-top: 2px; }
+
+  .flow-node.highlight {
+    border-color: #D4A012;
+    box-shadow: 0 0 20px rgba(212, 160, 18, 0.1);
+  }
+
+  .flow-pipe {
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    color: #2D4A6F;
+    font-size: 18px;
+  }
+
+  /* Curriculum step breakdown */
+  .step-blocks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .step-block {
+    background: #0E1A25;
+    border: 1px solid #1B2E44;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .step-block .block-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-block h4 {
+    font-size: 13px;
+    color: #E8E8E0;
+    margin-bottom: 3px;
+  }
+  .step-block p {
+    font-size: 11px;
+    color: #7C7C70;
+    line-height: 1.4;
+  }
+
+  /* File map */
+  .file-map {
+    background: #0E1A25;
+    border: 1px solid #1B2E44;
+    border-radius: 16px;
+    padding: 32px;
+    margin-top: 32px;
+  }
+  .file-map h2 {
+    font-family: 'Libre Baskerville', Georgia, serif;
+    font-size: 20px;
+    color: #FFD166;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+  }
+  .file-group h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #A9BFDA;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .file-entry {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #1B2E44;
+  }
+  .file-entry:last-child { border-bottom: none; }
+  .file-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #D4A012;
+    white-space: nowrap;
+  }
+  .file-desc {
+    font-size: 11px;
+    color: #7C7C70;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .header h1 { font-size: 32px; }
+    .tier-row { flex-direction: column; }
+    .card { min-width: 100% !important; }
+    .flow-diagram { flex-direction: column; gap: 8px; }
+    .flow-pipe { transform: rotate(90deg); padding: 4px 0; }
+    .legend { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>RHEMA</h1>
+  <p>Architecture overview — how all the pieces fit together from the user's browser down to the external Bible APIs and database.</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#5380B5"></div> Frontend (what users see)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2D6A4F"></div> Backend (server logic)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#D4A012"></div> Data (database & storage)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9B6B9E"></div> External APIs</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#C4704B"></div> Infrastructure</div>
+</div>
+
+<div class="canvas">
+
+  <!-- TIER 1: User-Facing Pages -->
+  <div class="tier">
+    <div class="section-label">What Users See — Pages</div>
+    <div class="tier-row">
+      <div class="card frontend">
+        <span class="card-icon">&#128214;</span>
+        <h3>Scripture Reader</h3>
+        <p>Read the Bible chapter by chapter, switch translations, highlight and bookmark verses.</p>
+        <span class="tech-badge">Next.js Page</span>
+        <span class="tech-badge">/read/[book]/[chapter]</span>
+      </div>
+      <div class="card frontend">
+        <span class="card-icon">&#128218;</span>
+        <h3>Curriculum Builder</h3>
+        <p>Create structured study plans by adding steps with scripture, teaching, video, and discussion blocks.</p>
+        <span class="tech-badge">Next.js Page</span>
+        <span class="tech-badge">/curricula/create</span>
+      </div>
+      <div class="card frontend">
+        <span class="card-icon">&#128269;</span>
+        <h3>Curriculum Library</h3>
+        <p>Browse, search, and follow published curricula by category and tags.</p>
+        <span class="tech-badge">Next.js Page</span>
+        <span class="tech-badge">/curricula</span>
+      </div>
+      <div class="card frontend">
+        <span class="card-icon">&#128210;</span>
+        <h3>Resource Directory</h3>
+        <p>Explore commentaries, theologian quotes, videos, and articles — all linked to scripture.</p>
+        <span class="tech-badge">Next.js Page</span>
+        <span class="tech-badge">/library</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="flow-connector">
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+    <span class="flow-label">Pages request data from...</span>
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+  </div>
+
+  <!-- TIER 2: Components -->
+  <div class="tier">
+    <div class="section-label">Reusable Components — Building Blocks of the UI</div>
+    <div class="tier-row">
+      <div class="card frontend">
+        <span class="card-icon">&#9638;</span>
+        <h3>UI Components</h3>
+        <p>Buttons, inputs, cards, modals — the basic building blocks styled with Rhema's design tokens.</p>
+        <span class="tech-badge">React</span>
+        <span class="tech-badge">Tailwind</span>
+      </div>
+      <div class="card frontend">
+        <span class="card-icon">&#9776;</span>
+        <h3>Layout Components</h3>
+        <p>Navigation bar, sidebar, footer — the shell that wraps every page.</p>
+        <span class="tech-badge">React</span>
+      </div>
+      <div class="card frontend">
+        <span class="card-icon">&#128221;</span>
+        <h3>Scripture Components</h3>
+        <p>Verse display, chapter reader, translation picker — everything for rendering Bible text.</p>
+        <span class="tech-badge">React</span>
+      </div>
+      <div class="card frontend">
+        <span class="card-icon">&#128736;</span>
+        <h3>Curriculum Components</h3>
+        <p>Step editor, block renderers (scripture, video, teaching, discussion), progress tracker.</p>
+        <span class="tech-badge">React</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="flow-connector">
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+    <span class="flow-label">Components get data from...</span>
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+  </div>
+
+  <!-- TIER 3: Service Layer -->
+  <div class="tier">
+    <div class="section-label">Service Layer — The Brain</div>
+    <div class="tier-row">
+      <div class="card backend">
+        <span class="card-icon">&#128220;</span>
+        <h3>Bible API Service</h3>
+        <p>Unified interface that fetches scripture from multiple providers and returns it in one consistent format. Handles parsing references like "John 3:16-21".</p>
+        <span class="tech-badge">TypeScript</span>
+        <span class="tech-badge">src/lib/bible/</span>
+      </div>
+      <div class="card backend">
+        <span class="card-icon">&#128274;</span>
+        <h3>Auth Service</h3>
+        <p>Handles optional sign-up/login, keeps sessions alive, and tells the app whether the current visitor is logged in.</p>
+        <span class="tech-badge">Supabase Auth</span>
+        <span class="tech-badge">src/lib/supabase/</span>
+      </div>
+      <div class="card backend">
+        <span class="card-icon">&#128640;</span>
+        <h3>API Routes</h3>
+        <p>Server-side endpoints that handle creating curricula, searching content, and proxying scripture requests.</p>
+        <span class="tech-badge">Next.js API</span>
+        <span class="tech-badge">src/app/api/</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="flow-connector">
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+    <span class="flow-label">Services talk to...</span>
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+  </div>
+
+  <!-- TIER 4: Data & External -->
+  <div class="tier">
+    <div class="section-label">Data & External Services — Where Everything Lives</div>
+    <div class="tier-row">
+      <div class="card data">
+        <span class="card-icon">&#128451;</span>
+        <h3>Supabase Database</h3>
+        <p>PostgreSQL database storing curricula, steps, commentaries, quotes, videos, articles, user profiles, bookmarks, and progress. Row Level Security keeps data safe.</p>
+        <span class="tech-badge">PostgreSQL</span>
+        <span class="tech-badge">Row Level Security</span>
+      </div>
+      <div class="card external">
+        <span class="card-icon">&#128214;</span>
+        <h3>Free Use Bible API</h3>
+        <p>Serves 1,000+ Bible translations including KJV, WEB, and ASV. No API key needed. No rate limits.</p>
+        <span class="tech-badge">bible.helloao.org</span>
+      </div>
+      <div class="card external">
+        <span class="card-icon">&#128216;</span>
+        <h3>ESV API</h3>
+        <p>Serves the English Standard Version. Free API key for non-commercial use.</p>
+        <span class="tech-badge">api.esv.org</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Arrow -->
+  <div class="flow-connector">
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+    <span class="flow-label">All hosted on...</span>
+    <div class="flow-arrow"><div class="line"></div><div class="arrow-head"></div></div>
+  </div>
+
+  <!-- TIER 5: Infrastructure -->
+  <div class="tier">
+    <div class="section-label">Infrastructure — Where It Runs</div>
+    <div class="tier-row">
+      <div class="card infra medium">
+        <span class="card-icon">&#9650;</span>
+        <h3>Vercel</h3>
+        <p>Hosts the Next.js app. Handles deployment, CDN, SSL, and serverless functions. Free tier supports the full MVP.</p>
+        <span class="tech-badge">Frontend + API</span>
+        <span class="tech-badge">Free Tier</span>
+      </div>
+      <div class="card infra medium">
+        <span class="card-icon">&#9889;</span>
+        <h3>Supabase Cloud</h3>
+        <p>Managed PostgreSQL, authentication, and file storage. Free tier includes 500MB database, 50K monthly active users, and 1GB file storage.</p>
+        <span class="tech-badge">Database + Auth</span>
+        <span class="tech-badge">Free Tier</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CURRICULUM STEP BREAKDOWN -->
+  <div class="data-flow" style="margin-top: 56px;">
+    <h2>Anatomy of a Curriculum Step</h2>
+    <p style="text-align:center; color:#7C7C70; font-size:13px; margin-bottom:24px;">Each step in a curriculum is built from these four block types, mixed in any order:</p>
+    <div class="step-blocks">
+      <div class="step-block">
+        <span class="block-icon">&#128214;</span>
+        <div>
+          <h4>Scripture Block</h4>
+          <p>A Bible passage displayed inline. Pulls from the Bible API in the creator's chosen translation.</p>
+        </div>
+      </div>
+      <div class="step-block">
+        <span class="block-icon">&#128221;</span>
+        <div>
+          <h4>Teaching Block</h4>
+          <p>Free-form text written by the curriculum creator — explanations, context, commentary, insights.</p>
+        </div>
+      </div>
+      <div class="step-block">
+        <span class="block-icon">&#127909;</span>
+        <div>
+          <h4>Video Block</h4>
+          <p>An embedded YouTube video — BibleProject explainers, seminary lectures, sermons.</p>
+        </div>
+      </div>
+      <div class="step-block">
+        <span class="block-icon">&#128172;</span>
+        <div>
+          <h4>Discussion Block</h4>
+          <p>Guided questions for personal reflection or group study. Optional facilitator notes included.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA FLOW -->
+  <div class="data-flow" style="margin-top:32px;">
+    <h2>How Data Flows When Someone Opens a Curriculum</h2>
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <div class="node-icon">&#128100;</div>
+        <div class="node-label">User</div>
+        <div class="node-detail">Opens a curriculum</div>
+      </div>
+      <div class="flow-pipe">&#10142;</div>
+      <div class="flow-node">
+        <div class="node-icon">&#127760;</div>
+        <div class="node-label">Next.js</div>
+        <div class="node-detail">Server renders page</div>
+      </div>
+      <div class="flow-pipe">&#10142;</div>
+      <div class="flow-node highlight">
+        <div class="node-icon">&#128451;</div>
+        <div class="node-label">Supabase</div>
+        <div class="node-detail">Fetches curriculum + steps</div>
+      </div>
+      <div class="flow-pipe">&#10142;</div>
+      <div class="flow-node">
+        <div class="node-icon">&#128214;</div>
+        <div class="node-label">Bible API</div>
+        <div class="node-detail">Fetches scripture for each block</div>
+      </div>
+      <div class="flow-pipe">&#10142;</div>
+      <div class="flow-node">
+        <div class="node-icon">&#9989;</div>
+        <div class="node-label">Rendered Page</div>
+        <div class="node-detail">Full curriculum with scripture</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILE MAP -->
+  <div class="file-map" style="margin-top:32px;">
+    <h2>File Map — What Each File Does</h2>
+    <div class="file-grid">
+      <div class="file-group">
+        <h4>Bible Engine</h4>
+        <div class="file-entry">
+          <span class="file-name">bible/api.ts</span>
+          <span class="file-desc">Fetches scripture from external APIs</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">bible/books.ts</span>
+          <span class="file-desc">All 66 books with metadata</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">bible/translations.ts</span>
+          <span class="file-desc">Which translations are available</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">bible/index.ts</span>
+          <span class="file-desc">Reception desk — routes imports</span>
+        </div>
+      </div>
+      <div class="file-group">
+        <h4>Database Connection</h4>
+        <div class="file-entry">
+          <span class="file-name">supabase/client.ts</span>
+          <span class="file-desc">Browser-side database connection</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">supabase/server.ts</span>
+          <span class="file-desc">Server-side database connection</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">supabase/middleware.ts</span>
+          <span class="file-desc">Keeps login sessions alive</span>
+        </div>
+      </div>
+      <div class="file-group">
+        <h4>Data Foundation</h4>
+        <div class="file-entry">
+          <span class="file-name">types/index.ts</span>
+          <span class="file-desc">Shape of every piece of data</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">001_initial_schema.sql</span>
+          <span class="file-desc">Database tables and security rules</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">.env.local.example</span>
+          <span class="file-desc">Template for secret keys</span>
+        </div>
+      </div>
+      <div class="file-group">
+        <h4>Design & Config</h4>
+        <div class="file-entry">
+          <span class="file-name">design-tokens.ts</span>
+          <span class="file-desc">Colors, fonts, spacing rules</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">middleware.ts</span>
+          <span class="file-desc">Front door — runs on every visit</span>
+        </div>
+        <div class="file-entry">
+          <span class="file-name">ARCHITECTURE.md</span>
+          <span class="file-desc">The full project blueprint</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
