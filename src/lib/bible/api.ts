@@ -2,7 +2,7 @@
  * Rhema — Bible API Integration Layer
  *
  * Unified interface for fetching scripture:
- * - bible-api.com — KJV, WEB, BBE (free, no key required)
+ * - bolls.life — KJV, ASV, YLT, and 100+ translations (free, no key required)
  * - ESV API (api.esv.org) — ESV translation (requires API key)
  *
  * All providers are normalized to a common Verse/Chapter format.
@@ -10,6 +10,7 @@
 
 import { Chapter, Verse, TranslationId } from "@/types";
 import { getTranslation } from "./translations";
+import { getBookByName, BIBLE_BOOKS } from "./books";
 
 // ============================================
 // Provider Interfaces
@@ -26,23 +27,49 @@ interface BibleProvider {
 }
 
 // ============================================
-// bible-api.com Provider
-// Docs: https://bible-api.com
-// Free, no API key, supports KJV, WEB, BBE, etc.
+// Book name → bolls.life book number mapping
+// bolls.life uses standard 1-66 Protestant canon ordering
 // ============================================
 
-class BibleApiComProvider implements BibleProvider {
+function getBookNumber(bookName: string): number {
+  const book = getBookByName(bookName);
+  if (book) return book.order;
+
+  // Fallback: try matching against BIBLE_BOOKS more loosely
+  const normalized = bookName.toLowerCase().replace(/\s+/g, "");
+  const match = BIBLE_BOOKS.find(
+    (b) =>
+      b.name.toLowerCase().replace(/\s+/g, "") === normalized ||
+      b.id.replace(/-/g, "") === normalized
+  );
+  if (match) return match.order;
+
+  throw new Error(`Unknown book: ${bookName}`);
+}
+
+// ============================================
+// bolls.life Provider
+// Docs: https://bolls.life/api/
+// Free, no API key, 100+ translations
+// Endpoint: GET /get-chapter/{translation}/{bookNum}/{chapter}/
+// ============================================
+
+class BollsLifeProvider implements BibleProvider {
   private translationId: string;
 
   constructor(translationId: string) {
-    this.translationId = translationId.toLowerCase();
+    this.translationId = translationId;
   }
 
   async fetchChapter(book: string, chapter: number): Promise<Verse[]> {
-    const query = encodeURIComponent(`${book} ${chapter}`);
-    const url = `https://bible-api.com/${query}?translation=${this.translationId}`;
+    const bookNum = getBookNumber(book);
+    const url = `https://bolls.life/get-chapter/${this.translationId}/${bookNum}/${chapter}/`;
 
-    const response = await fetch(url, { next: { revalidate: 86400 } });
+    const response = await fetch(url, {
+      next: { revalidate: 86400 },
+      headers: { Accept: "application/json" },
+    });
+
     if (!response.ok) {
       throw new Error(
         `Failed to fetch ${book} ${chapter} (${this.translationId}): ${response.status}`
@@ -59,38 +86,32 @@ class BibleApiComProvider implements BibleProvider {
     verseStart: number,
     verseEnd?: number
   ): Promise<Verse[]> {
+    // bolls.life doesn't have a verse-range endpoint, so fetch the chapter
+    // and filter to the requested range
+    const allVerses = await this.fetchChapter(book, chapter);
     const end = verseEnd ?? verseStart;
-    const query = encodeURIComponent(`${book} ${chapter}:${verseStart}-${end}`);
-    const url = `https://bible-api.com/${query}?translation=${this.translationId}`;
-
-    const response = await fetch(url, { next: { revalidate: 86400 } });
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch ${book} ${chapter}:${verseStart}-${end}: ${response.status}`
-      );
-    }
-
-    const data = await response.json();
-    return this.parseResponse(data, book, chapter);
+    return allVerses.filter((v) => v.verse >= verseStart && v.verse <= end);
   }
 
   private parseResponse(data: unknown, book: string, chapter: number): Verse[] {
     const verses: Verse[] = [];
 
-    if (
-      typeof data === "object" &&
-      data &&
-      "verses" in data &&
-      Array.isArray((data as { verses: unknown[] }).verses)
-    ) {
-      for (const v of (data as { verses: { verse: number; text: string }[] }).verses) {
-        if (v && typeof v.verse === "number" && typeof v.text === "string") {
+    if (!Array.isArray(data)) return verses;
+
+    for (const v of data) {
+      if (v && typeof v === "object" && "verse" in v && "text" in v) {
+        const verseNum = typeof v.verse === "number" ? v.verse : parseInt(String(v.verse), 10);
+        const text = typeof v.text === "string" ? v.text : String(v.text ?? "");
+
+        if (verseNum && text.trim()) {
+          // bolls.life may include HTML tags — strip them
+          const cleanText = text.replace(/<[^>]*>/g, "").trim();
           verses.push({
             book,
             chapter,
-            verse: v.verse,
-            text: v.text.trim(),
-            translation: this.translationId.toUpperCase(),
+            verse: verseNum,
+            text: cleanText,
+            translation: this.translationId,
           });
         }
       }
@@ -212,7 +233,7 @@ function getProvider(translationId: TranslationId): BibleProvider {
       break;
     case "free-bible-api":
     default:
-      providers[translationId] = new BibleApiComProvider(translationId);
+      providers[translationId] = new BollsLifeProvider(translationId);
       break;
   }
 

@@ -86,6 +86,10 @@ export default function StudyWorkspace({
   // ── Fetch translation ──
   const fetchTranslation = useCallback(
     async (newTranslation: TranslationId) => {
+      if (newTranslation === "KJV" && initialVerses.length > 0) {
+        setVerses(initialVerses);
+        return;
+      }
       setLoading(true);
       try {
         const res = await fetch(
@@ -93,7 +97,9 @@ export default function StudyWorkspace({
         );
         if (res.ok) {
           const data = await res.json();
-          setVerses(data.verses ?? []);
+          if (data.verses && data.verses.length > 0) {
+            setVerses(data.verses);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch translation:", err);
@@ -101,13 +107,11 @@ export default function StudyWorkspace({
         setLoading(false);
       }
     },
-    [bookName, chapter]
+    [bookName, chapter, initialVerses]
   );
 
   useEffect(() => {
-    if (translation !== "KJV") {
-      fetchTranslation(translation);
-    }
+    fetchTranslation(translation);
   }, [translation, fetchTranslation]);
 
   // ── Load related topics ──

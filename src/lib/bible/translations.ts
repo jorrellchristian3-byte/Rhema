@@ -17,18 +17,18 @@ export const TRANSLATIONS: Record<TranslationId, Translation> = {
     isPublicDomain: false,
     apiSource: "esv-api",
   },
-  WEB: {
-    id: "WEB",
-    name: "World English Bible",
-    abbreviation: "WEB",
+  ASV: {
+    id: "ASV",
+    name: "American Standard Version",
+    abbreviation: "ASV",
     language: "en",
     isPublicDomain: true,
     apiSource: "free-bible-api",
   },
-  BBE: {
-    id: "BBE",
-    name: "Bible in Basic English",
-    abbreviation: "BBE",
+  YLT: {
+    id: "YLT",
+    name: "Young's Literal Translation",
+    abbreviation: "YLT",
     language: "en",
     isPublicDomain: true,
     apiSource: "free-bible-api",

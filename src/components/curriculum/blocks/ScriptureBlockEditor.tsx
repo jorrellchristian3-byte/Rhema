@@ -105,8 +105,8 @@ export default function ScriptureBlockEditor({ block, onChange }: Props) {
         >
           <option value="KJV">KJV</option>
           <option value="ESV">ESV</option>
-          <option value="WEB">WEB</option>
-          <option value="BBE">BBE</option>
+          <option value="ASV">ASV</option>
+          <option value="YLT">YLT</option>
         </select>
         <input
           type="text"

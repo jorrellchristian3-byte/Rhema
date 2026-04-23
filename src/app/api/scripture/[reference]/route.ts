@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchPassage } from "@/lib/bible";
 import { TranslationId } from "@/types";
 
-const SUPPORTED_TRANSLATIONS: TranslationId[] = ["KJV", "ESV", "WEB", "BBE"];
+const SUPPORTED_TRANSLATIONS: TranslationId[] = ["KJV", "ESV", "ASV", "YLT"];
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   request: NextRequest,

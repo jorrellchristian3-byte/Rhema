@@ -35,7 +35,7 @@ export interface Chapter {
   translation: string;
 }
 
-export type TranslationId = "KJV" | "ESV" | "WEB" | "BBE";
+export type TranslationId = "KJV" | "ESV" | "ASV" | "YLT";
 
 export interface Translation {
   id: TranslationId;

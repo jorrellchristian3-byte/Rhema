@@ -52,7 +52,7 @@ export default function ReaderClient({
 
   // Refetch when translation changes (client-side)
   const fetchTranslation = useCallback(async (newTranslation: TranslationId) => {
-    if (newTranslation === initialTranslation) {
+    if (newTranslation === initialTranslation && initialVerses.length > 0) {
       setVerses(initialVerses);
       return;
     }

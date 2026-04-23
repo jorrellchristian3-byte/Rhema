@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchChapter } from "@/lib/bible/api";
 import { TranslationId } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ book: string; chapter: string }> }
@@ -30,14 +32,13 @@ export async function GET(
     return NextResponse.json(result, {
       headers: {
         "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=43200",
-        Vary: "Accept",
       },
     });
   } catch (error) {
     console.error("Scripture fetch error:", error);
 
-    // If ESV fails (no API key), fall back to KJV
-    if (translation === "ESV") {
+    // If a non-KJV translation fails, try falling back to KJV
+    if (translation !== "KJV") {
       try {
         const fallback = await fetchChapter(
           decodeURIComponent(book),
@@ -45,7 +46,7 @@ export async function GET(
           "KJV"
         );
         return NextResponse.json(
-          { ...fallback, error: "ESV requires an API key. Showing KJV instead." },
+          { ...fallback, fallbackFrom: translation },
           { status: 200 }
         );
       } catch {
