@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Menu, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Verse, TranslationId } from "@/types";
 import { getBook, BIBLE_BOOKS } from "@/lib/bible/books";
+import { useBookmarks } from "@/hooks/useBookmarks";
+import { useAuth } from "@/components/auth/AuthProvider";
 import BookSidebar from "./BookSidebar";
 import TranslationPicker from "./TranslationPicker";
 import VerseDisplay from "./VerseDisplay";
@@ -28,9 +30,21 @@ export default function ReaderClient({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { user } = useAuth();
   const book = getBook(bookId);
   const bookName = book?.name ?? bookId;
   const totalChapters = book?.chapters ?? 1;
+
+  // Bookmarks for this chapter
+  const {
+    bookmarks,
+    addBookmark,
+    removeBookmark,
+  } = useBookmarks({
+    book: bookName,
+    chapter,
+    isAuthenticated: !!user,
+  });
 
   // Find prev/next for navigation
   const bookIndex = BIBLE_BOOKS.findIndex((b) => b.id === bookId);
@@ -66,7 +80,6 @@ export default function ReaderClient({
         if (data.verses && data.verses.length > 0) {
           setVerses(data.verses);
         } else {
-          // Translation returned no verses — fall back to initial
           console.warn(`No verses returned for ${newTranslation}, keeping current`);
         }
       }
@@ -80,6 +93,22 @@ export default function ReaderClient({
   useEffect(() => {
     fetchTranslation(translation);
   }, [translation, fetchTranslation]);
+
+  // Bookmark handlers
+  const handleAddBookmark = async (verseNum: number, note?: string, color?: string) => {
+    return addBookmark({
+      book: bookName,
+      chapter,
+      verseStart: verseNum,
+      verseEnd: verseNum,
+      note,
+      color,
+    });
+  };
+
+  const handleRemoveBookmark = async (bookmarkId: string) => {
+    return removeBookmark(bookmarkId);
+  };
 
   return (
     <div className="flex bg-[var(--background)]">
@@ -147,6 +176,10 @@ export default function ReaderClient({
               verses={verses}
               bookName={bookName}
               chapter={chapter}
+              bookmarks={bookmarks}
+              onAddBookmark={handleAddBookmark}
+              onRemoveBookmark={handleRemoveBookmark}
+              isAuthenticated={!!user}
             />
           )}
 

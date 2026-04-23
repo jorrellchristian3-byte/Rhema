@@ -16,12 +16,16 @@ import {
   FileText,
   PanelLeftClose,
   PanelRightClose,
+  Bookmark,
+  BookmarkCheck,
+  X,
 } from "lucide-react";
 import { Verse, TranslationId, StudyNote } from "@/types";
 import { getBook, BIBLE_BOOKS } from "@/lib/bible/books";
 import TranslationPicker from "@/components/scripture/TranslationPicker";
 import { getTopicsForBook, type TheologicalTopic } from "@/lib/theology/topics";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useBookmarks, BookmarkRecord } from "@/hooks/useBookmarks";
 
 // ── Props ──
 
@@ -63,6 +67,18 @@ export default function StudyWorkspace({
   const [noteSaveStatus, setNoteSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [notesLoading, setNotesLoading] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Bookmarks ──
+  const {
+    bookmarks,
+    addBookmark,
+    removeBookmark,
+  } = useBookmarks({
+    book: bookName,
+    chapter,
+    isAuthenticated: !!user,
+  });
+  const [selectedStudyVerse, setSelectedStudyVerse] = useState<number | null>(null);
 
   // ── Resources state ──
   const [relatedTopics, setRelatedTopics] = useState<TheologicalTopic[]>([]);
@@ -324,13 +340,70 @@ export default function StudyWorkspace({
                     {bookName} {chapter}
                   </h2>
                   <div className="scripture-text text-[var(--primary-900)] text-base leading-[1.9]">
-                    {verses.map((v) => (
-                      <span key={v.verse} className="group">
-                        <span className="verse-number">{v.verse}</span>
-                        {v.text}{" "}
-                      </span>
-                    ))}
+                    {verses.map((v) => {
+                      const bm = bookmarks.find(
+                        (b) =>
+                          b.verse_start !== null &&
+                          b.verse_start <= v.verse &&
+                          (b.verse_end ?? b.verse_start) >= v.verse
+                      );
+                      return (
+                        <span
+                          key={v.verse}
+                          className={`relative inline cursor-pointer rounded-sm transition-colors ${
+                            selectedStudyVerse === v.verse
+                              ? "bg-[var(--accent-100)]"
+                              : bm
+                                ? ""
+                                : "hover:bg-[var(--neutral-100)]"
+                          }`}
+                          style={
+                            bm && selectedStudyVerse !== v.verse
+                              ? { backgroundColor: `${bm.color}18` }
+                              : undefined
+                          }
+                          onClick={() =>
+                            setSelectedStudyVerse(
+                              selectedStudyVerse === v.verse ? null : v.verse
+                            )
+                          }
+                        >
+                          {bm && (
+                            <span
+                              className="inline-block w-1.5 h-1.5 rounded-full mr-0.5 align-middle"
+                              style={{ backgroundColor: bm.color }}
+                            />
+                          )}
+                          <span className="verse-number">{v.verse}</span>
+                          {v.text}{" "}
+                        </span>
+                      );
+                    })}
                   </div>
+
+                  {/* Verse action popover in study */}
+                  {selectedStudyVerse && (
+                    <StudyVerseActions
+                      bookName={bookName}
+                      chapter={chapter}
+                      verseNum={selectedStudyVerse}
+                      verses={verses}
+                      bookmarks={bookmarks}
+                      isAuthenticated={!!user}
+                      onAddBookmark={async (verseNum, note, color) => {
+                        await addBookmark({
+                          book: bookName,
+                          chapter,
+                          verseStart: verseNum,
+                          verseEnd: verseNum,
+                          note,
+                          color,
+                        });
+                      }}
+                      onRemoveBookmark={removeBookmark}
+                      onClose={() => setSelectedStudyVerse(null)}
+                    />
+                  )}
 
                   {/* Chapter nav */}
                   <nav className="flex items-center justify-between mt-12 pt-6 border-t border-[var(--border)]">
@@ -552,8 +625,38 @@ Tips:
 }
 
 // ═══════════════════════════════════════════
-// Resources Panel
+// Resources Panel (fetches from Supabase + local topics)
 // ═══════════════════════════════════════════
+
+interface DbCommentary {
+  id: string;
+  author: string;
+  title: string;
+  content: string;
+  source_url: string | null;
+}
+interface DbQuote {
+  id: string;
+  author: string;
+  author_era: string | null;
+  text: string;
+  source_title: string | null;
+}
+interface DbVideo {
+  id: string;
+  title: string;
+  url: string;
+  channel: string;
+  description: string | null;
+}
+interface DbArticle {
+  id: string;
+  title: string;
+  author: string;
+  url: string;
+  source: string;
+  description: string | null;
+}
 
 function ResourcesPanel({
   bookName,
@@ -568,6 +671,38 @@ function ResourcesPanel({
   expandedTopic: string | null;
   onToggleTopic: (id: string) => void;
 }) {
+  const [commentaries, setCommentaries] = useState<DbCommentary[]>([]);
+  const [quotes, setQuotes] = useState<DbQuote[]>([]);
+  const [videos, setVideos] = useState<DbVideo[]>([]);
+  const [articles, setArticles] = useState<DbArticle[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadResources() {
+      setResourcesLoading(true);
+      try {
+        const res = await fetch(
+          `/api/resources?book=${encodeURIComponent(bookName)}&chapter=${chapter}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCommentaries(data.commentaries ?? []);
+          setQuotes(data.quotes ?? []);
+          setVideos(data.videos ?? []);
+          setArticles(data.articles ?? []);
+        }
+      } catch (err) {
+        console.error("Failed to load resources:", err);
+      } finally {
+        setResourcesLoading(false);
+      }
+    }
+    loadResources();
+  }, [bookName, chapter]);
+
+  const hasDbResources =
+    commentaries.length > 0 || quotes.length > 0 || videos.length > 0 || articles.length > 0;
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-shrink-0 px-4 py-2 border-b border-[var(--border)] bg-[var(--accent-50)]">
@@ -576,113 +711,365 @@ function ResourcesPanel({
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {relatedTopics.length === 0 ? (
-          <div className="text-center py-12">
-            <Lightbulb size={32} className="mx-auto mb-3 text-[var(--neutral-300)]" />
-            <p className="text-sm text-[var(--neutral-500)]">
-              No specific topics mapped to {bookName} yet.
-            </p>
-            <p className="text-xs text-[var(--neutral-400)] mt-1">
-              Context resources are growing — check back soon.
-            </p>
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {resourcesLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={20} className="animate-spin text-[var(--accent-400)]" />
           </div>
         ) : (
           <>
-            <p className="text-xs text-[var(--neutral-500)]">
-              {relatedTopics.length} topic{relatedTopics.length !== 1 ? "s" : ""} related to {bookName}
-            </p>
-
-            {relatedTopics.map((topic) => (
-              <div
-                key={topic.id}
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] overflow-hidden"
-              >
-                <button
-                  onClick={() => onToggleTopic(topic.id)}
-                  className="w-full text-left px-4 py-3 flex items-start justify-between gap-2 hover:bg-[var(--neutral-50)] transition-colors"
-                >
-                  <div>
-                    <span className="text-sm font-medium text-[var(--primary-800)]">
-                      {topic.label}
-                    </span>
-                    <span className="block text-xs text-[var(--neutral-500)] mt-0.5 line-clamp-2">
-                      {topic.description}
-                    </span>
-                  </div>
-                  <ChevronRight
-                    size={14}
-                    className={`flex-shrink-0 mt-0.5 text-[var(--neutral-400)] transition-transform ${
-                      expandedTopic === topic.id ? "rotate-90" : ""
-                    }`}
-                  />
-                </button>
-
-                {expandedTopic === topic.id && (
-                  <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]">
-                    {/* Key passages */}
-                    <div className="pt-3">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-2">
-                        Key Passages
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {topic.keyPassages.map((p, i) => (
-                          <Link
-                            key={i}
-                            href={`/study/${p.book.toLowerCase().replace(/\s+/g, "+")}/${p.chapter}`}
-                            className="px-2 py-1 rounded text-xs font-medium bg-[var(--primary-50)] text-[var(--primary-600)] hover:bg-[var(--primary-100)] transition-colors"
-                          >
-                            {p.book} {p.chapter}
-                            {p.verseStart ? `:${p.verseStart}` : ""}
-                            {p.verseEnd ? `-${p.verseEnd}` : ""}
-                          </Link>
-                        ))}
-                      </div>
+            {/* ── Commentaries ── */}
+            {commentaries.length > 0 && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-3">
+                  Commentaries
+                </h3>
+                <div className="space-y-3">
+                  {commentaries.map((c) => (
+                    <div key={c.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+                      <p className="text-xs font-medium text-[var(--primary-700)] mb-1">{c.title}</p>
+                      <p className="text-xs text-[var(--neutral-500)] mb-2">by {c.author}</p>
+                      <p className="text-xs text-[var(--neutral-700)] leading-relaxed">{c.content}</p>
+                      {c.source_url && (
+                        <a
+                          href={c.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block mt-2 text-xs text-[var(--primary-600)] hover:underline"
+                        >
+                          Read full commentary
+                        </a>
+                      )}
                     </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-                    {/* Context notes */}
-                    {(topic.contextNotes.historical || topic.contextNotes.theological) && (
-                      <div>
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-2">
-                          Background
-                        </h4>
-                        {topic.contextNotes.historical && (
-                          <p className="text-xs text-[var(--neutral-600)] mb-2 leading-relaxed">
-                            <strong className="text-[var(--neutral-700)]">Historical:</strong>{" "}
-                            {topic.contextNotes.historical}
-                          </p>
-                        )}
-                        {topic.contextNotes.theological && (
-                          <p className="text-xs text-[var(--neutral-600)] leading-relaxed">
-                            <strong className="text-[var(--neutral-700)]">Theological:</strong>{" "}
-                            {topic.contextNotes.theological}
-                          </p>
-                        )}
-                      </div>
-                    )}
+            {/* ── Theologian Quotes ── */}
+            {quotes.length > 0 && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-3">
+                  Theologian Quotes
+                </h3>
+                <div className="space-y-3">
+                  {quotes.map((q) => (
+                    <div key={q.id} className="rounded-lg border-l-3 border-[var(--accent-300)] bg-[var(--surface)] px-4 py-3">
+                      <p className="text-xs text-[var(--neutral-700)] leading-relaxed italic">
+                        &ldquo;{q.text}&rdquo;
+                      </p>
+                      <p className="text-xs text-[var(--neutral-500)] mt-2">
+                        — {q.author}
+                        {q.author_era && <span className="text-[var(--neutral-400)]"> ({q.author_era})</span>}
+                        {q.source_title && <span className="text-[var(--neutral-400)]">, {q.source_title}</span>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-                    {/* Discussion questions */}
-                    {topic.suggestedQuestions.length > 0 && (
-                      <div>
-                        <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-2">
-                          Study Questions
-                        </h4>
-                        <div className="space-y-1.5">
-                          {topic.suggestedQuestions.map((q, i) => (
-                            <p key={i} className="text-xs text-[var(--neutral-600)] leading-relaxed pl-3 border-l-2 border-[var(--accent-200)]">
-                              {q}
-                            </p>
-                          ))}
+            {/* ── Videos ── */}
+            {videos.length > 0 && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-3">
+                  Video Resources
+                </h3>
+                <div className="space-y-2">
+                  {videos.map((v) => (
+                    <a
+                      key={v.id}
+                      href={v.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 hover:bg-[var(--neutral-50)] transition-colors"
+                    >
+                      <p className="text-xs font-medium text-[var(--primary-700)]">{v.title}</p>
+                      <p className="text-xs text-[var(--neutral-500)] mt-0.5">{v.channel}</p>
+                      {v.description && (
+                        <p className="text-xs text-[var(--neutral-600)] mt-1 line-clamp-2">{v.description}</p>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── Articles ── */}
+            {articles.length > 0 && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-3">
+                  Articles & Reading
+                </h3>
+                <div className="space-y-2">
+                  {articles.map((a) => (
+                    <a
+                      key={a.id}
+                      href={a.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 hover:bg-[var(--neutral-50)] transition-colors"
+                    >
+                      <p className="text-xs font-medium text-[var(--primary-700)]">{a.title}</p>
+                      <p className="text-xs text-[var(--neutral-500)] mt-0.5">{a.author} — {a.source}</p>
+                      {a.description && (
+                        <p className="text-xs text-[var(--neutral-600)] mt-1 line-clamp-2">{a.description}</p>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── Theological Topics (existing local data) ── */}
+            {relatedTopics.length > 0 && (
+              <section>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-3">
+                  Related Topics
+                </h3>
+                <p className="text-xs text-[var(--neutral-500)] mb-2">
+                  {relatedTopics.length} topic{relatedTopics.length !== 1 ? "s" : ""} related to {bookName}
+                </p>
+
+                <div className="space-y-2">
+                  {relatedTopics.map((topic) => (
+                    <div
+                      key={topic.id}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface)] overflow-hidden"
+                    >
+                      <button
+                        onClick={() => onToggleTopic(topic.id)}
+                        className="w-full text-left px-4 py-3 flex items-start justify-between gap-2 hover:bg-[var(--neutral-50)] transition-colors"
+                      >
+                        <div>
+                          <span className="text-sm font-medium text-[var(--primary-800)]">
+                            {topic.label}
+                          </span>
+                          <span className="block text-xs text-[var(--neutral-500)] mt-0.5 line-clamp-2">
+                            {topic.description}
+                          </span>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                        <ChevronRight
+                          size={14}
+                          className={`flex-shrink-0 mt-0.5 text-[var(--neutral-400)] transition-transform ${
+                            expandedTopic === topic.id ? "rotate-90" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {expandedTopic === topic.id && (
+                        <div className="px-4 pb-4 space-y-3 border-t border-[var(--border)]">
+                          <div className="pt-3">
+                            <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-2">
+                              Key Passages
+                            </h4>
+                            <div className="flex flex-wrap gap-1.5">
+                              {topic.keyPassages.map((p, i) => (
+                                <Link
+                                  key={i}
+                                  href={`/study/${p.book.toLowerCase().replace(/\s+/g, "+")}/${p.chapter}`}
+                                  className="px-2 py-1 rounded text-xs font-medium bg-[var(--primary-50)] text-[var(--primary-600)] hover:bg-[var(--primary-100)] transition-colors"
+                                >
+                                  {p.book} {p.chapter}
+                                  {p.verseStart ? `:${p.verseStart}` : ""}
+                                  {p.verseEnd ? `-${p.verseEnd}` : ""}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+
+                          {(topic.contextNotes.historical || topic.contextNotes.theological) && (
+                            <div>
+                              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-2">
+                                Background
+                              </h4>
+                              {topic.contextNotes.historical && (
+                                <p className="text-xs text-[var(--neutral-600)] mb-2 leading-relaxed">
+                                  <strong className="text-[var(--neutral-700)]">Historical:</strong>{" "}
+                                  {topic.contextNotes.historical}
+                                </p>
+                              )}
+                              {topic.contextNotes.theological && (
+                                <p className="text-xs text-[var(--neutral-600)] leading-relaxed">
+                                  <strong className="text-[var(--neutral-700)]">Theological:</strong>{" "}
+                                  {topic.contextNotes.theological}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {topic.suggestedQuestions.length > 0 && (
+                            <div>
+                              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--accent-600)] mb-2">
+                                Study Questions
+                              </h4>
+                              <div className="space-y-1.5">
+                                {topic.suggestedQuestions.map((q, i) => (
+                                  <p key={i} className="text-xs text-[var(--neutral-600)] leading-relaxed pl-3 border-l-2 border-[var(--accent-200)]">
+                                    {q}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Empty state when nothing at all */}
+            {!hasDbResources && relatedTopics.length === 0 && (
+              <div className="text-center py-12">
+                <Lightbulb size={32} className="mx-auto mb-3 text-[var(--neutral-300)]" />
+                <p className="text-sm text-[var(--neutral-500)]">
+                  No resources found for {bookName} {chapter} yet.
+                </p>
+                <p className="text-xs text-[var(--neutral-400)] mt-1">
+                  Resources are growing — check back soon.
+                </p>
               </div>
-            ))}
+            )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════
+// Study Verse Actions (inline bookmark bar)
+// ═══════════════════════════════════════════
+
+const BOOKMARK_COLORS = [
+  { value: "#3B82F6", label: "Blue" },
+  { value: "#10B981", label: "Green" },
+  { value: "#F59E0B", label: "Amber" },
+  { value: "#EF4444", label: "Red" },
+  { value: "#8B5CF6", label: "Purple" },
+  { value: "#EC4899", label: "Pink" },
+];
+
+function StudyVerseActions({
+  bookName,
+  chapter,
+  verseNum,
+  verses,
+  bookmarks,
+  isAuthenticated,
+  onAddBookmark,
+  onRemoveBookmark,
+  onClose,
+}: {
+  bookName: string;
+  chapter: number;
+  verseNum: number;
+  verses: Verse[];
+  bookmarks: BookmarkRecord[];
+  isAuthenticated: boolean;
+  onAddBookmark: (verseNum: number, note?: string, color?: string) => Promise<unknown>;
+  onRemoveBookmark: (id: string) => Promise<boolean>;
+  onClose: () => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [note, setNote] = useState("");
+  const [color, setColor] = useState("#3B82F6");
+  const [saving, setSaving] = useState(false);
+
+  const existing = bookmarks.find(
+    (b) =>
+      b.verse_start !== null &&
+      b.verse_start <= verseNum &&
+      (b.verse_end ?? b.verse_start) >= verseNum
+  );
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onAddBookmark(verseNum, note || undefined, color);
+    setSaving(false);
+    setShowForm(false);
+    setNote("");
+  };
+
+  return (
+    <div className="mt-4 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-[var(--primary-700)]">
+          {bookName} {chapter}:{verseNum}
+        </span>
+        <button onClick={onClose} className="text-[var(--neutral-400)] hover:text-[var(--neutral-600)]">
+          <X size={14} />
+        </button>
+      </div>
+      <div className="flex items-center gap-2">
+        {isAuthenticated ? (
+          existing ? (
+            <button
+              onClick={() => onRemoveBookmark(existing.id)}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-[var(--accent-600)] hover:bg-[var(--accent-50)] transition-colors"
+            >
+              <BookmarkCheck size={12} /> Remove Bookmark
+            </button>
+          ) : showForm ? null : (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-[var(--primary-600)] hover:bg-[var(--primary-50)] transition-colors"
+            >
+              <Bookmark size={12} /> Bookmark
+            </button>
+          )
+        ) : (
+          <span className="text-xs text-[var(--neutral-400)]">Sign in to bookmark</span>
+        )}
+        <button
+          onClick={() => {
+            const verse = verses.find((v) => v.verse === verseNum);
+            if (verse) {
+              navigator.clipboard.writeText(
+                `"${verse.text}" — ${bookName} ${chapter}:${verse.verse} (${verse.translation})`
+              );
+            }
+          }}
+          className="px-2 py-1 rounded text-xs font-medium text-[var(--neutral-600)] hover:bg-[var(--neutral-100)] transition-colors"
+        >
+          Copy
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="mt-3 pt-3 border-t border-[var(--border)]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs text-[var(--neutral-500)]">Color:</span>
+            {BOOKMARK_COLORS.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setColor(c.value)}
+                className={`w-4 h-4 rounded-full border-2 transition-all ${
+                  color === c.value ? "border-[var(--primary-600)] scale-110" : "border-transparent"
+                }`}
+                style={{ backgroundColor: c.value }}
+                title={c.label}
+              />
+            ))}
+          </div>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Add a note (optional)..."
+            className="w-full h-14 px-2 py-1.5 text-xs rounded border border-[var(--border)] bg-[var(--background)] text-[var(--primary-800)] placeholder:text-[var(--neutral-400)] focus:outline-none focus:ring-1 focus:ring-[var(--primary-400)] resize-none"
+            maxLength={500}
+          />
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="mt-2 w-full py-1.5 rounded text-xs font-medium text-white bg-[var(--primary-600)] hover:bg-[var(--primary-700)] disabled:opacity-50 transition-colors"
+          >
+            {saving ? "Saving..." : "Save Bookmark"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

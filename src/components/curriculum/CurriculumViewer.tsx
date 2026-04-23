@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -15,6 +15,8 @@ import {
   Tag,
   User,
   Loader2,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import {
   Curriculum,
@@ -28,6 +30,7 @@ import {
   ContextualFrameworkBlock,
   Verse,
 } from "@/types";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 // ── Main Viewer ──
 
@@ -36,9 +39,83 @@ export default function CurriculumViewer({
 }: {
   curriculum: Curriculum;
 }) {
+  const { user } = useAuth();
   const steps = curriculum.steps ?? [];
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const currentStep = steps[currentStepIndex];
+
+  // Load existing progress
+  useEffect(() => {
+    if (!user) return;
+    async function loadProgress() {
+      try {
+        const res = await fetch(`/api/progress?curriculum_id=${curriculum.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.progress?.length > 0) {
+            const p = data.progress[0];
+            setCurrentStepIndex(p.current_step ?? 0);
+            setCompletedSteps(p.completed_steps ?? []);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load progress:", err);
+      }
+    }
+    loadProgress();
+  }, [user, curriculum.id]);
+
+  // Save progress
+  const saveProgress = useCallback(
+    async (stepIndex: number, completed: number[]) => {
+      if (!user) return;
+      try {
+        await fetch("/api/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            curriculum_id: curriculum.id,
+            current_step: stepIndex,
+            completed_steps: completed,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to save progress:", err);
+      }
+    },
+    [user, curriculum.id]
+  );
+
+  // Navigate to step + save position
+  const goToStep = (index: number) => {
+    setCurrentStepIndex(index);
+    saveProgress(index, completedSteps);
+  };
+
+  // Toggle step completion
+  const toggleStepComplete = (stepOrder: number) => {
+    const updated = completedSteps.includes(stepOrder)
+      ? completedSteps.filter((s) => s !== stepOrder)
+      : [...completedSteps, stepOrder];
+    setCompletedSteps(updated);
+    saveProgress(currentStepIndex, updated);
+  };
+
+  // Mark current step complete and advance
+  const completeAndAdvance = () => {
+    const stepOrder = currentStep?.order ?? currentStepIndex;
+    const updated = completedSteps.includes(stepOrder)
+      ? completedSteps
+      : [...completedSteps, stepOrder];
+    setCompletedSteps(updated);
+    const nextIndex = Math.min(currentStepIndex + 1, steps.length - 1);
+    setCurrentStepIndex(nextIndex);
+    saveProgress(nextIndex, updated);
+  };
+
+  const progressPercent =
+    steps.length > 0 ? Math.round((completedSteps.length / steps.length) * 100) : 0;
 
   const categoryLabels: Record<string, string> = {
     "book-study": "Book Study",
@@ -89,27 +166,55 @@ export default function CurriculumViewer({
         </div>
       </header>
 
-      {/* Step navigation bar */}
+      {/* Progress bar + Step navigation bar */}
       {steps.length > 0 && (
         <div className="sticky top-16 z-20 bg-[var(--surface)]/95 backdrop-blur-sm border-b border-[var(--border)]">
+          {/* Progress indicator */}
+          {user && (
+            <div className="max-w-4xl mx-auto px-4 md:px-8 pt-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-1.5 bg-[var(--neutral-100)] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <span className="text-xs font-medium text-[var(--neutral-500)] whitespace-nowrap">
+                  {completedSteps.length}/{steps.length} complete
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="max-w-4xl mx-auto px-4 md:px-8">
             <div className="flex items-center gap-1 py-2 overflow-x-auto">
-              {steps.map((step, i) => (
-                <button
-                  key={step.id}
-                  onClick={() => setCurrentStepIndex(i)}
-                  className={`
-                    flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors
-                    ${
-                      i === currentStepIndex
-                        ? "bg-[var(--primary-500)] text-white"
-                        : "text-[var(--neutral-500)] hover:bg-[var(--neutral-100)]"
-                    }
-                  `}
-                >
-                  {i + 1}. {step.title}
-                </button>
-              ))}
+              {steps.map((step, i) => {
+                const stepOrder = step.order ?? i;
+                const isCompleted = completedSteps.includes(stepOrder);
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => goToStep(i)}
+                    className={`
+                      flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors
+                      ${
+                        i === currentStepIndex
+                          ? "bg-[var(--primary-500)] text-white"
+                          : isCompleted
+                            ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                            : "text-[var(--neutral-500)] hover:bg-[var(--neutral-100)]"
+                      }
+                    `}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 size={12} className={i === currentStepIndex ? "text-white" : "text-emerald-500"} />
+                    ) : (
+                      <Circle size={12} className="opacity-40" />
+                    )}
+                    {i + 1}. {step.title}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -136,33 +241,57 @@ export default function CurriculumViewer({
               ))}
             </div>
 
-            {/* Prev/Next */}
-            <nav className="flex items-center justify-between mt-16 pt-8 border-t border-[var(--border)]">
-              {currentStepIndex > 0 ? (
-                <button
-                  onClick={() => setCurrentStepIndex(currentStepIndex - 1)}
-                  className="flex items-center gap-2 text-sm text-[var(--neutral-500)] hover:text-[var(--primary-600)] transition-colors"
-                >
-                  <ChevronLeft size={16} />
-                  {steps[currentStepIndex - 1].title}
-                </button>
-              ) : (
-                <div />
-              )}
-              {currentStepIndex < steps.length - 1 ? (
-                <button
-                  onClick={() => setCurrentStepIndex(currentStepIndex + 1)}
-                  className="flex items-center gap-2 text-sm text-[var(--neutral-500)] hover:text-[var(--primary-600)] transition-colors"
-                >
-                  {steps[currentStepIndex + 1].title}
-                  <ChevronRight size={16} />
-                </button>
-              ) : (
-                <div className="text-sm text-emerald-600 font-medium">
-                  Curriculum complete
+            {/* Mark complete + Prev/Next */}
+            <div className="mt-16 pt-8 border-t border-[var(--border)]">
+              {user && (
+                <div className="flex justify-center mb-6">
+                  {completedSteps.includes(currentStep?.order ?? currentStepIndex) ? (
+                    <button
+                      onClick={() => toggleStepComplete(currentStep?.order ?? currentStepIndex)}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                    >
+                      <CheckCircle2 size={16} />
+                      Completed — undo?
+                    </button>
+                  ) : (
+                    <button
+                      onClick={completeAndAdvance}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
+                    >
+                      <CheckCircle2 size={16} />
+                      Mark Complete & Continue
+                    </button>
+                  )}
                 </div>
               )}
-            </nav>
+
+              <nav className="flex items-center justify-between">
+                {currentStepIndex > 0 ? (
+                  <button
+                    onClick={() => goToStep(currentStepIndex - 1)}
+                    className="flex items-center gap-2 text-sm text-[var(--neutral-500)] hover:text-[var(--primary-600)] transition-colors"
+                  >
+                    <ChevronLeft size={16} />
+                    {steps[currentStepIndex - 1].title}
+                  </button>
+                ) : (
+                  <div />
+                )}
+                {currentStepIndex < steps.length - 1 ? (
+                  <button
+                    onClick={() => goToStep(currentStepIndex + 1)}
+                    className="flex items-center gap-2 text-sm text-[var(--neutral-500)] hover:text-[var(--primary-600)] transition-colors"
+                  >
+                    {steps[currentStepIndex + 1].title}
+                    <ChevronRight size={16} />
+                  </button>
+                ) : (
+                  <div className="text-sm text-emerald-600 font-medium">
+                    {progressPercent === 100 ? "All steps complete!" : "Last step"}
+                  </div>
+                )}
+              </nav>
+            </div>
           </div>
         ) : null}
       </main>
