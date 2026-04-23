@@ -104,8 +104,16 @@ class BollsLifeProvider implements BibleProvider {
         const text = typeof v.text === "string" ? v.text : String(v.text ?? "");
 
         if (verseNum && text.trim()) {
-          // bolls.life may include HTML tags — strip them
-          const cleanText = text.replace(/<[^>]*>/g, "").trim();
+          // bolls.life embeds Strong's Concordance numbers in KJV text:
+          //   - Glued to words: "God430", "created1254"
+          //   - Standalone particles: " 853 " (untranslated Hebrew markers)
+          // Strip both patterns, plus any HTML tags
+          const cleanText = text
+            .replace(/<[^>]*>/g, "")                // strip HTML tags
+            .replace(/([a-zA-Z])(\d{3,5})\b/g, "$1") // Strong's glued to words
+            .replace(/\s\d{3,5}\s/g, " ")           // standalone Strong's numbers
+            .replace(/\s{2,}/g, " ")                // collapse multiple spaces
+            .trim();
           verses.push({
             book,
             chapter,
